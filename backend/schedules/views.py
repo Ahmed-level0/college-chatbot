@@ -2,7 +2,6 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import Lecture, Exam
-from rest_framework.renderers import JSONRenderer
 
 # Create your views here.
 class LectureAPIView(APIView):

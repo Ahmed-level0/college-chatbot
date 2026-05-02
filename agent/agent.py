@@ -3,9 +3,10 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.tools import tool
 import config
 from rules_tool import search_rules
+from schedules_tool import get_lectures, get_exams
 
 # Tools
-tools = [search_rules]
+tools = [search_rules, get_lectures, get_exams]
 
 # Gemini with tool calling
 llm = ChatGoogleGenerativeAI(
@@ -82,4 +83,4 @@ if __name__ == "__main__":
             break
         
         response = chat(user_input)
-        print(f"Bot: {response[0]['text']}\n")
+        print(f"Bot: {response}\n")
