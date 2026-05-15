@@ -1,24 +1,21 @@
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.messages import ToolMessage
 from langchain_core.tools import tool
-import config
-from rules_tool import search_rules
-from schedules_tool import get_lectures, get_exams
+from .tools.schedules_tool import get_lectures, get_exams
+from .tools.rules_tool import search_rules
+from .tools import config
 
-# Tools
 tools = [search_rules, get_lectures, get_exams]
 
-# Gemini with tool calling
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",
     google_api_key=config.GOOGLE_API_KEY,
     temperature=0.1
 )
 
-# Bind tools to the model
 llm_with_tools = llm.bind_tools(tools)
 
-# Simple conversation memory (just a list)
 conversation_history = []
 
 SYSTEM_PROMPT = """You are a helpful university assistant. You answer questions about:
@@ -27,51 +24,51 @@ SYSTEM_PROMPT = """You are a helpful university assistant. You answer questions 
 
 Be concise and accurate. Cite page numbers when referencing rules."""
 
-def chat(message: str) -> str:
-    # Build messages
+def chat(prompt: str) -> str:
+    human_message = HumanMessage(content=prompt)
+
     messages = [SystemMessage(content=SYSTEM_PROMPT)]
     messages.extend(conversation_history)
-    messages.append(HumanMessage(content=message))
-    
-    # Get response from LLM (may include tool calls)
+    messages.append(human_message)
+
+    # save user message immediately
+    conversation_history.append(human_message)
+
     response = llm_with_tools.invoke(messages)
-    
-    # Handle tool calls
+
     while response.tool_calls:
-        # Add assistant's tool request to history
         messages.append(response)
         conversation_history.append(response)
-        
-        # Execute each tool
+
         for tool_call in response.tool_calls:
             tool_name = tool_call["name"]
             tool_args = tool_call["args"]
-            
-            print(f"  🔧 Calling tool: {tool_name}({tool_args})")
-            
-            # Find and execute the tool
+
+            print(f"🔧 Calling tool: {tool_name}({tool_args})")
+
             selected_tool = next(t for t in tools if t.name == tool_name)
+
             tool_result = selected_tool.invoke(tool_args)
-            
-            # Add tool result to messages
-            from langchain_core.messages import ToolMessage
-            messages.append(ToolMessage(
-                content=tool_result,
+
+            tool_message = ToolMessage(
+                content=str(tool_result),
                 tool_call_id=tool_call["id"]
-            ))
-        
-        # Get final response after tool results
+            )
+
+            messages.append(tool_message)
+            conversation_history.append(tool_message)
+
         response = llm_with_tools.invoke(messages)
-    
-    # Add final response to history
-    conversation_history.append(HumanMessage(content=message))
+
     conversation_history.append(response)
-    
-    # Keep history manageable (last 10 exchanges)
+
     if len(conversation_history) > 20:
         conversation_history[:] = conversation_history[-20:]
-    
-    return response.content
+    response = response.content
+    if response[0]['text']:
+            return response[0]['text']
+    else:    
+        return response
 
 if __name__ == "__main__":
     print("🎓 University Chatbot")
@@ -83,4 +80,8 @@ if __name__ == "__main__":
             break
         
         response = chat(user_input)
-        print(f"Bot: {response}\n")
+
+        if response[0]['text']:
+            print(response[0]['text'])
+        else:    
+            print(f"Bot: {response}\n")

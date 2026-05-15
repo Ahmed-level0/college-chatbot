@@ -1,7 +1,7 @@
 from langchain.tools import tool
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import chromadb
-import config
+from .config import GOOGLE_API_KEY
 
 @tool
 def search_rules(query: str) -> str:
@@ -16,7 +16,7 @@ def search_rules(query: str) -> str:
         # Embed query with LangChain
         embeddings = GoogleGenerativeAIEmbeddings(
             model="models/gemini-embedding-001",
-            google_api_key=config.GOOGLE_API_KEY
+            google_api_key=GOOGLE_API_KEY
         )
         query_embedding = embeddings.embed_query(query)
         

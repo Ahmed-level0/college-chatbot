@@ -5,7 +5,7 @@ import chromadb
 from chromadb.utils.embedding_functions import GoogleGenerativeAiEmbeddingFunction
 from chromadb.config import Settings
 import time
-import config
+import backend.chatbot.agent.tools.config as config
 
 def ingest_pdf(pdf_path: str = "../data/rules.pdf"):
     print(f"Loading {pdf_path}...")
